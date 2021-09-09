@@ -1,0 +1,100 @@
+def fibonacchi(int n) 
+{
+    int n0;
+    int n1;
+    n0 = 0;
+    n1 = 1;
+    if (n == 0) {
+        print n0;
+    } 
+    
+    if (n == 1) {
+        print n1;
+    }
+
+    if (n > 1) {
+        int temp;
+        int temp2;
+        int param;
+        int param2;
+        int resultado;
+        param = n - 1;
+        param2 = n - 2;
+        temp = fibonacchi(param);
+        temp2 = fibonacchi(param2);
+        resultado = temp + temp2;
+        print resultado;
+    }
+    return;
+}
+
+def is_prime(int number)
+{
+    int flag;
+    flag = 0;
+
+    if (number > 1)
+    {
+        int i;
+        for (i = 2; i < num; i = i + 1)
+        {
+            if (num % i == 0)
+            {
+                flag = 1;
+                break;
+            }
+        }
+    }
+
+    if (flag == 0)
+    {
+        print "Eh primo";
+    }
+
+    if (flag == 1)
+    {
+        print "Nao eh primo";
+    }
+}
+
+def even_or_odd(int number) {
+    if (number % 2 == 0) 
+    {
+        print "Eh par";
+    }
+
+    if (number % 2 != 0)
+    {
+        print "Eh impar";
+    }
+}
+
+def main() 
+{
+    int a;
+    int result;
+    
+    print "Numero Fibonacchi na posicao 10:";
+    a = 10;
+    result = fibonacchi(a);
+
+    print "Numero Fibonacchi na posicao 31:";
+    a = 31;
+    result = fibonacchi(a);
+
+    print "O numero 11 eh primo?";
+    a = 11;
+    resulta = is_prime(a);
+
+    print "O numero 99 eh primo?";
+    a = 99;
+    resulta = is_prime(a);
+
+    print "O numero 20 eh par?";
+    a = 20;
+    resulta = even_or_odd(a);
+
+    print "O numero 33 eh par?";
+    a = 33;
+    resulta = even_or_odd(a);
+}

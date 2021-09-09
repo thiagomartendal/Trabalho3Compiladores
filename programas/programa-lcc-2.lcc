@@ -1,0 +1,104 @@
+def BirgeVieta(int x, int y, int tamanho)
+{
+    float erro;
+    erro = 0.000001;
+    int count;
+    count = 0;
+    int x0;
+    x0 = x;
+    int b;
+    b = coeficientes[0];
+    int n;
+    n = tamanho;
+    int b1;
+    int c1;
+    b1 = new int[n];
+    c1 = new int[n-1];
+    b1[0] = b;
+    c1[0] = b;
+    float R;
+    R = 1;
+    int count;
+    count = 0;
+    float i;
+    for (i = R; i > erro; i = R)
+    {
+        count = count + 1;
+        int j;
+        for (j = 1; j < n; j = j + 1)
+        {
+            b1[j] = (b1[j - 1] * x0) + y;
+        }
+
+        int k;
+        int temp;
+        temp = n - 1;
+        for (k = 1; k < temp; k = k + 1)
+        {
+            c1[k] = c1[k - 1] * x0 + b1[k];
+        }
+
+        R = b1[n - 1];
+        R1 = c1[n - 2];
+        xk = x0 - R / R1;
+        x0 = xk;
+        print "O valor de b1 é: ";
+        print b1;
+        print "O valor de c1 é: ";
+        print c1;
+        print "O valor de xk é: ";
+        print xk;
+        print "-------------------------";
+    }
+    return;
+}
+
+def abs(float x)
+{
+    float result;
+    int temp;
+    temp = -1;
+    result = x;
+    if (x < 0)
+    {
+        result  = x * temp;
+    }
+    print "O valor absoluto é: ";
+    print result;
+    return;
+}
+
+def main()
+{
+    int coeficeintes;
+    coeficeintes = new int[10];
+    coeficientes[0] = 1;
+    coeficientes[1] = 3;
+    coeficientes[2] = -6;
+    coeficientes[3] = -18;
+    coeficientes[4] = -4;
+    coeficientes[5] = 9;
+    coeficientes[6] = 45;
+    coeficientes[7] = -3;
+    coeficientes[8] = 15;
+    coeficientes[9] = -1;
+    int tam;
+    tam = 0;
+    int i;
+
+    for (i = 0; coeficientes[i] != null; i = i + 1)
+    {
+        tam = tam + i;
+    }
+
+    int j;
+    int temp2;
+    int x;
+    x = 2;
+    int y;
+    for (j = 0; j < tam;j = j + 1)
+    {
+        temp = coeficeintes[j];
+        y = BirgeVieta(x, temp, tam);
+    }
+}

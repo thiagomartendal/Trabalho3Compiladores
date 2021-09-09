@@ -1,0 +1,106 @@
+{
+    int conjunto_a;
+    int conjunto_b;
+    conjunto_a = new int[10];
+    conjunto_b = new int[10];
+    
+    conjunto_a[0] = 2;
+    conjunto_a[1] = 4;
+    conjunto_a[2] = 6;
+    conjunto_a[3] = 8;
+    conjunto_a[4] = 10;
+    conjunto_a[5] = 12;
+    conjunto_a[6] = 14;
+    conjunto_a[7] = 16;
+    conjunto_a[8] = 18;
+    conjunto_b[9] = 20;
+
+    conjunto_b[0] = 2;
+    conjunto_b[1] = 4;
+    conjunto_b[2] = 8;
+    conjunto_b[3] = 16;
+    conjunto_b[4] = 32;
+    conjunto_b[5] = 64;
+    conjunto_b[6] = 128;
+    conjunto_b[7] = 15;
+    conjunto_b[8] = 67;
+    conjunto_b[9] = 92;
+
+    int tamanho_a;
+    tamanho_a = 1;
+    int tamanho_b;
+    tamanho_b = 1;
+    int k;
+    for (k = 0; conjunto_a[k] != null; k = k + 1)
+    {
+        tamanho_a = tamanho_a + 1;
+    }
+    for (k = 0; conjunto_b[k] != null; k = k + 1)
+    {
+        tamanho_b = tamanho_b + 1;
+    }
+
+    int uniao;
+    int tamanho_uniao;
+    tamanho_uniao = tamanho_a + tamanho_b;
+    uniao = new int[tamanho_uniao];
+    int i;
+    for (i = 0; i < tamanho_a; i = i + 1)
+    {
+       uniao[i] = conjunto_a[i]; 
+    }
+    int j;
+    int index;
+    index = tamanho_a;
+    for (j = 0; j < tamanho_b; j = j + 1)
+    {
+        uniao[index] = conjunto_b[j];
+        index = index + 1;
+    }
+    print "A união dos conjuntos A e B é : ";
+    print uniao;
+
+    int intersecao;
+    intersecao = new int[10];
+    int k;
+    for (k = 0; k < tamanho_a; k = k + 1)
+    {
+        int x;
+        for (x = 0; x < tamanho_b; x = x + 1)
+        {
+            if (conjunto_a[k] == conjunto_b[x])
+            {
+                intersecao[k] = conjunto_a[k];
+            }
+        }
+    }
+    print "A interseção dos conjuntos A e B é : ";
+    print intersecao;
+
+    int diferenca[10];
+    int t;
+    for (t = 0; t < tamanho_a; t = t + 1)
+    {
+        diferenca[t] = conjunto_a[t] - conjunto_b[t]; 
+    }
+    print "O conjunto diferença dos conjuntos A e B é : ";
+    print diferenca;
+
+    int soma[10];
+    int p;
+    for (p = 0; p < tamanho_a; p = p + 1)
+    {
+        diferenca[p] = conjunto_a[p] + conjunto_b[p]; 
+    }
+    print "O conjunto soma dos conjuntos A e B é : ";
+    print soma;
+
+    int multiplicacao[10];
+    int y;
+    for (y = 0; y < tamanho_a; y = y + 1)
+    {
+        diferenca[y] = conjunto_a[y] * conjunto_b[y]; 
+    }
+    print "O conjunto multiplicação dos conjuntos A e B é : ";
+    print soma;
+}
