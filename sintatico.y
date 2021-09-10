@@ -18,7 +18,9 @@ std::string op = "";
 std::string tipoExpressao = "";
 std::string msgErro = "";
 std::string nomeVariavel = "";
-int escopoEspressao = -1;
+int escopoEspressao = 0;
+int cont = -1;
+void checarVariavelEscopo();
 extern int yylex();
 extern void yyerror(const char*);
 extern int yylineno;
@@ -30,6 +32,8 @@ extern "C" {
   const char* tokenAtual();
   std::vector<std::string> arvoreExpressao();
   std::string mensagemErro();
+  std::string erroNaInicializacao();
+  std::string erroMultiplaDeclaracao();
 }
 %}
 
@@ -97,7 +101,10 @@ FUNCLIST: FUNCDEF FUNCLIST {}
   | FUNCDEF {}
   ;
 
-FUNCDEF: DF IDF P1 PARAMLIST P2 CV1 {escopoEspressao++;} STATELIST CV2 {escopoEspressao--;}
+FUNCDEF: DF IDF P1 PARAMLIST P2 CV1 {escopoEspressao++;} STATELIST CV2 {
+    checarVariavelEscopo();
+    escopoEspressao--;
+  }
   ;
 
 PARAMLIST: %empty {}
@@ -117,19 +124,7 @@ STATEMENT: VARDECL PV {}
   | IFSTAT {}
   | FORSTAT {}
   | CV1 {escopoEspressao++;} STATELIST CV2 {
-    for (auto const& it1: TabelaSimbolo::instancia()->getTabela()) {
-      std::pair<std::string, std::string> par1 = it1.first;
-      Atributo at1 = it1.second;
-      for (auto const& it2: TabelaSimbolo::instancia()->getTabela()) {
-        std::pair<std::string, std::string> par2 = it2.first;
-        Atributo at2 = it2.second;
-        if ((par1.first == par2.first) && (par1.second != par2.second) && (at1.escopo == at2.escopo)) {
-          correto = false;
-          msgErro = "A variável "+par1.first+" foi declarada duas vezes com tipos diferentes no mesmo escopo.";
-          break;
-        }
-      }
-    }
+    checarVariavelEscopo();
     escopoEspressao--;
   }
   | BRK PV {
@@ -202,6 +197,7 @@ NUMEXPRESSION: TERM NTERM {
     if (!expressaoLoop) {
       if (op != "") {
         expressao = op+expressao;
+        op = "";
       }
       expressoes.push_back(expressao);
       expressaoPronta = expressao;
@@ -212,17 +208,42 @@ NUMEXPRESSION: TERM NTERM {
   ;
 
 NTERM: %empty {}
-  | ADD TERM NTERM {op += "+";}
-  | SUB TERM NTERM {op += "-";}
+  | ADD TERM NTERM {
+    if (!expressaoLoop) {
+      op += "+";
+    }
+  }
+  | SUB TERM NTERM {
+    if (!expressaoLoop) {
+      op += "-";
+    }
+  }
   ;
 
 TERM: UNARYEXPR MUL UNARYEXPR {
-    expressao += "*"+expAux;
+    if (!expressaoLoop) {
+      expressao += "*"+expAux;
+    }
     expAux = "";
   }
-  | UNARYEXPR DIV UNARYEXPR {expressao += "/"+expAux; expAux = "";}
-  | UNARYEXPR PRC UNARYEXPR {expressao += "%"+expAux; expAux = "";}
-  | UNARYEXPR {expressao += expAux; expAux = "";}
+  | UNARYEXPR DIV UNARYEXPR {
+    if (!expressaoLoop) {
+      expressao += "/"+expAux;
+    }
+    expAux = "";
+  }
+  | UNARYEXPR PRC UNARYEXPR {
+    if (!expressaoLoop) {
+      expressao += "%"+expAux;
+    }
+    expAux = "";
+  }
+  | UNARYEXPR {
+    if (!expressaoLoop) {
+      expressao += expAux;
+    }
+    expAux = "";
+  }
   ;
 
 UNARYEXPR: ADD AFACTOR {} // Produção para sinal +
@@ -312,7 +333,7 @@ FACTOR: ICT {
       }
     }
   }
-  | SCT {{op += "+";}
+  | SCT {
     expAux += yytext;
     if (tipoExpressao != "string") {
       correto = false;
@@ -327,11 +348,27 @@ FACTOR: ICT {
   ;
 
 LVALUE: ID {
+    bool escopoDiferente = false;
     for (auto const& it: TabelaSimbolo::instancia()->getTabela()) {
-      std::pair<std::string, std::string> par = it.first;
+      std::pair<std::string, std::pair<std::string, int>> par = it.first;
+      std::pair<std::string, int> par2 = par.second;
       Atributo at = it.second;
-      if ((par.first == yytext) && (at.escopo == escopoEspressao)) {
-        tipoExpressao = par.second;
+      if ((par.first == yytext) && (par2.second == escopoEspressao)) {
+        tipoExpressao = par2.first;
+        escopoDiferente = false;
+        break;
+      } else {
+        escopoDiferente = true;
+      }
+    }
+    if (escopoDiferente) {
+      for (auto const& it: TabelaSimbolo::instancia()->getTabela()) {
+        std::pair<std::string, std::pair<std::string, int>> par = it.first;
+        std::pair<std::string, int> par2 = par.second;
+        Atributo at = it.second;
+        if (par.first == yytext) {
+          tipoExpressao = par2.first;
+        }
       }
     }
   } NLVALUE {}
@@ -350,6 +387,13 @@ void yyerror(const char *msg) {
 }
 
 bool programaCorreto() {
+  if (erroNaInicializacao() != "") {
+    correto = false;
+    msgErro = erroNaInicializacao();
+  } else if (erroMultiplaDeclaracao() != "") {
+    correto = false;
+    msgErro = erroMultiplaDeclaracao();
+  }
   return correto;
 }
 
@@ -359,4 +403,30 @@ std::vector<std::string> arvoreExpressao() {
 
 std::string mensagemErro() {
   return msgErro;
+}
+
+void checarVariavelEscopo() {
+  int i = 0;
+  for (auto const& it1: TabelaSimbolo::instancia()->getTabela()) {
+    std::pair<std::string, std::pair<std::string, int>> par1 = it1.first;
+    std::pair<std::string, int> par2 = par1.second;
+    Atributo at1 = it1.second;
+    int j = 0;
+    for (auto const& it2: TabelaSimbolo::instancia()->getTabela()) {
+      if (i != j) {
+        std::pair<std::string, std::pair<std::string, int>> par3 = it2.first;
+        std::pair<std::string, int> par4 = par3.second;
+        Atributo at2 = it2.second;
+        /* std::cout << par1.first << " " << par2.first << " " << par1.second << " " << par2.second << " " << at1.escopo << " " << at2.escopo << std::endl; */
+        /* && (par2.first != par4.first) */
+        if ((par1.first == par3.first) && (par2.second == par4.second)) {
+          correto = false;
+          msgErro = "A variável "+par1.first+" foi declarada duas vezes no mesmo escopo.";
+          break;
+        }
+      }
+      j++;
+    }
+    i++;
+  }
 }

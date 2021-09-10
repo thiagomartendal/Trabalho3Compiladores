@@ -8,10 +8,13 @@
   int yycolumn = 1;
   int start_line = 1, start_column = 1;
   int tokenAnterior = -1;
-  int escopoAtual = -1;
+  int escopoAtual = 0;
   std::vector<std::string> funcLex;
   std::string tokenLido;
   std::string tipoVariavel = "";
+  std::string erroInicializacao = "";
+  std::string erroDeclaracaoMultipla = "";
+  bool definicaoFuncao = false;
 
   #define YY_USER_ACTION                                                   \
     start_line = prev_yylineno; start_column = yycolumn;                   \
@@ -22,6 +25,8 @@
     }
 
   extern "C" {
+    std::string erroNaInicializacao();
+    std::string erroMultiplaDeclaracao();
     int coluna(void);
     const char* tokenAtual(void);
   }
@@ -33,7 +38,7 @@
 %%
   int prev_yylineno = yylineno;
 "new" {tokenLido = "NEW"; return NEW;}
-"def" {tokenLido = "DF"; tokenAnterior = DF; return DF;}
+"def" {tokenLido = "DF"; tokenAnterior = DF; definicaoFuncao = true; return DF;}
 "read" {tokenLido = "RD"; return RD;}
 "print" {tokenLido = "PR"; return PR;}
 "null" {tokenLido = "NL"; return NL;}
@@ -68,12 +73,28 @@
 ";" {tokenLido = "PV"; return PV;}
 [a-zA-Z_][a-zA-Z0-9_]* {
   Posicao p = {yylineno, coluna()};
-  if (tipoVariavel != "") {
-    TabelaSimbolo::instancia()->inserir(yytext, p, tipoVariavel);
-    TabelaSimbolo::instancia()->inserirEscopo(yytext, escopoAtual, tipoVariavel);
-    tipoVariavel = "";
+  if (definicaoFuncao) {
+    definicaoFuncao = false;
+    TabelaSimbolo::instancia()->inserir(yytext, p, "função", escopoAtual);
   } else {
-    TabelaSimbolo::instancia()->inserir(yytext, p);
+    if (tipoVariavel != "") {
+      std::map<std::pair<std::string, std::pair<std::string, int>>, Atributo>::iterator it = TabelaSimbolo::instancia()->getTabela().find(std::make_pair(yytext, std::make_pair(tipoVariavel, escopoAtual)));
+      if(it != TabelaSimbolo::instancia()->getTabela().end()) {
+        if (erroDeclaracaoMultipla == "") {
+          erroDeclaracaoMultipla = "A variável "+std::string(yytext)+" foi declarada duas vezes no mesmo escopo.";
+        }
+      } else {
+        TabelaSimbolo::instancia()->inserir(yytext, p, tipoVariavel, escopoAtual);
+        /* TabelaSimbolo::instancia()->inserirEscopo(yytext, escopoAtual, tipoVariavel); */
+      }
+      tipoVariavel = "";
+    } else {
+      if (!TabelaSimbolo::instancia()->inserir(yytext, p)) {
+        if ((!definicaoFuncao) && (erroInicializacao == "")) {
+          erroInicializacao = "A variável "+std::string(yytext)+" na linha "+std::to_string(yylineno)+" e coluna "+std::to_string(coluna())+" foi inicializada antes de ser declarada.";
+        }
+      }
+    }
   }
   if (tokenAnterior == DF) {
     tokenAnterior = -1;
@@ -102,4 +123,12 @@ int coluna() {
 
 const char* tokenAtual() {
   return tokenLido.c_str();
+}
+
+std::string erroNaInicializacao() {
+  return erroInicializacao;
+}
+
+std::string erroMultiplaDeclaracao() {
+  return erroDeclaracaoMultipla;
 }

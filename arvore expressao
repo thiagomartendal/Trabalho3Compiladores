@@ -1,0 +1,53 @@
+NTERM: %empty {}
+  | ADD TERM NTERM {
+  expressao = "+"+expressao;
+  if (expAux != "") {
+    expressao += expAux;
+    expAux = "";
+  }
+  }
+  | SUB TERM NTERM {
+    expressao = "-"+expressao;
+    if (expAux != "") {
+      expressao += expAux;
+      expAux = "";
+    }
+    expressoes.push_back(expressao);
+    expressao = "";
+  }
+  ;
+
+TERM: UNARYEXPR MUL UNARYEXPR {expressao += "*"; expressao += expAux; expAux = "";}
+  | UNARYEXPR DIV UNARYEXPR {expressao += "/"; expressao += expAux; expAux = "";}
+  | UNARYEXPR PRC UNARYEXPR {expressao += "%"; expressao += expAux; expAux = "";}
+  | UNARYEXPR {}
+  ;
+
+UNARYEXPR: ADD AFACTOR {} // Produção para sinal +
+  | SUB SFACTOR {} // Produção para sinal -
+  | FACTOR {} // Produção sem sinal
+  ;
+
+AFACTOR: ICT {expAux += "+"+std::string(yytext);}
+  | FCT {expAux += "+"+std::string(yytext);}
+  | SCT {expAux += "+"+std::string(yytext);}
+  | NL {}
+  | LVALUE {}
+  | P1 NUMEXPRESSION P2 {}
+  ;
+
+SFACTOR: ICT {expAux += "-"+std::string(yytext);}
+  | FCT {expAux += "-"+std::string(yytext);}
+  | SCT {expAux += "-"+std::string(yytext);}
+  | NL {}
+  | LVALUE {}
+  | P1 NUMEXPRESSION P2 {}
+  ;
+
+FACTOR: ICT {expAux += yytext;}
+  | FCT {expAux += yytext;}
+  | SCT {expAux += yytext;}
+  | NL {}
+  | LVALUE {}
+  | P1 NUMEXPRESSION P2 {}
+  ;

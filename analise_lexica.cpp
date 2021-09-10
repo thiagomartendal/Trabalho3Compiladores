@@ -168,10 +168,6 @@ void AnaliseLexica::tokenizar(int ntoken, std::string lexema, int linha, int col
     }
   }
   Posicao p = {linha, coluna};
-  if ((id == ID) || (id == IDF)) {
-    // tabelaSimbolos[lexema].pos.insert(p); // Insere linha no conjunto de linhas de um lexema
-    // TabelaSimbolo::instancia()->inserir(lexema, p);
-  }
   Token token = {id, lexema, p, descricao}; // Monta o token
   tokens.push_back(token); // Adiciona o token a tabela de símbolos
 }
