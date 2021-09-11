@@ -104,7 +104,7 @@ void Entrada::exibirTabelaSimbolos() {
     std::pair<std::string, std::pair<std::string, int>> par = it.first;
     std::pair<std::string, int> par2 = par.second;
     Atributo at = it.second;
-    std::cout << "Id: " << par.first << " - Tipo: " << par2.first << " - Escopo: " << par2.second << " - Posição: [";
+    std::cout << "Id: " << par.first << " - Tipo: " << par2.first << " - Posição: [";
     int i = 0;
     for (Posicao p: at.pos) {
       std::cout << "{" << p.linha << ", " << p.coluna << "}";

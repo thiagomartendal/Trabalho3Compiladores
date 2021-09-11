@@ -31,21 +31,6 @@ bool TabelaSimbolo::inserir(std::string lexema, Posicao posicao, std::string tip
   return true;
 }
 
-// void TabelaSimbolo::inserirEscopo(std::string lexema, int escopo, std::string tipo) {
-//   if (tipo == "") {
-//     std::map<std::pair<std::string, std::string>, Atributo>::iterator it;
-//     for (it = tabela.begin(); it != tabela.end(); it++) {
-//       std::pair<std::string, std::string> par = it->first;
-//       if (par.first == lexema) {
-//         tabela[std::pair<std::string, std::string>(par.first, par.second)].escopo = escopo;
-//         break;
-//       }
-//     }
-//   } else {
-//     tabela[std::pair<std::string, std::string>(lexema, tipo)].escopo = escopo;
-//   }
-// }
-
 void TabelaSimbolo::limpaTabela() {
   tabela.clear();
 }

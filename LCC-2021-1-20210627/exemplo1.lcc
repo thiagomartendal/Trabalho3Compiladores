@@ -4,7 +4,7 @@
   float z;
   int i;
   int max;
-  x = 0;
+  x = 0.0;
   max = 10000;
   for (i = 1; i <= max; i = i + 1){
     print x;
@@ -24,8 +24,8 @@
   int i;
   y = new int[10];
   j = 0;
-  for (i = 0; i < 20; i = i + 1) 
-    if (i % 2 == 0){
+  for (i = 0; i < 20; i = i + 1)
+    ifelse (i % 2 == 0){
       y[j] = i + 1;
       j = j + 1;
     }

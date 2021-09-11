@@ -7,8 +7,10 @@
 #include "atributo.h"
 #include "tabela_simbolo.h"
 bool correto = true;
-bool expressaoLoop = false;
+bool expressaoEstrutura = false;
 bool escopoLoop = false;
+bool comandoPrint = false;
+bool comparacao = false;
 std::string producaoAtual;
 std::vector<std::string> expressoes;
 std::string expressaoPronta = "";
@@ -19,7 +21,7 @@ std::string tipoExpressao = "";
 std::string msgErro = "";
 std::string nomeVariavel = "";
 int escopoEspressao = 0;
-int cont = -1;
+int auxEscopoEspressao = -1;
 void checarVariavelEscopo();
 extern int yylex();
 extern void yyerror(const char*);
@@ -34,6 +36,7 @@ extern "C" {
   std::string mensagemErro();
   std::string erroNaInicializacao();
   std::string erroMultiplaDeclaracao();
+  void checaTipoExpressao(std::string tipo);
 }
 %}
 
@@ -101,7 +104,7 @@ FUNCLIST: FUNCDEF FUNCLIST {}
   | FUNCDEF {}
   ;
 
-FUNCDEF: DF IDF P1 PARAMLIST P2 CV1 {escopoEspressao++;} STATELIST CV2 {
+FUNCDEF: DF IDF P1 PARAMLIST P2 CV1 {auxEscopoEspressao++; escopoEspressao = auxEscopoEspressao+1;} STATELIST CV2 {
     checarVariavelEscopo();
     escopoEspressao--;
   }
@@ -123,7 +126,7 @@ STATEMENT: VARDECL PV {}
   | RETURNSTAT PV {}
   | IFSTAT {}
   | FORSTAT {}
-  | CV1 {escopoEspressao++;} STATELIST CV2 {
+  | CV1 {auxEscopoEspressao++; escopoEspressao = auxEscopoEspressao+1;} STATELIST CV2 {
     checarVariavelEscopo();
     escopoEspressao--;
   }
@@ -159,7 +162,7 @@ PARAMLISTCALL: %empty {}
   | ID {}
   ;
 
-PRINTSTAT: PR EXPRESSION {}
+PRINTSTAT: PR {comandoPrint = true;} EXPRESSION {}
   ;
 
 READSTAT: RD LVALUE {}
@@ -168,11 +171,11 @@ READSTAT: RD LVALUE {}
 RETURNSTAT: RET {}
   ;
 
-IFSTAT: IF P1 EXPRESSION P2 STATEMENT {}
-  | IFE P1 EXPRESSION P2 STATEMENT ELS STATEMENT {}
+IFSTAT: IF {expressaoEstrutura = true;} P1 EXPRESSION P2 {expressaoEstrutura = false;} STATEMENT {}
+  | IFE {expressaoEstrutura = true;} P1 EXPRESSION P2 {expressaoEstrutura = false;} STATEMENT ELS STATEMENT {}
   ;
 
-FORSTAT: FOR {expressaoLoop = true; escopoLoop = true;} P1 ATRIBSTAT PV EXPRESSION PV ATRIBSTAT P2 {expressaoLoop = false; expressao = ""; tipoExpressao = "";} STATEMENT {expressaoLoop = false; escopoLoop = false;}
+FORSTAT: FOR {expressaoEstrutura = true; escopoLoop = true;} P1 ATRIBSTAT PV EXPRESSION PV ATRIBSTAT P2 {expressaoEstrutura = false; expressao = ""; tipoExpressao = "";} STATEMENT {expressaoEstrutura = false; escopoLoop = false;}
   ;
 
 STATELIST: STATEMENT STATELIST {}
@@ -184,17 +187,17 @@ ALLOCEXPRESSION: NEW INT CL1 NUMEXPRESSION CL2 {}
   | NEW STR CL1 NUMEXPRESSION CL2 {}
   ;
 
-EXPRESSION: NUMEXPRESSION MER NUMEXPRESSION {}
-  | NUMEXPRESSION MAR NUMEXPRESSION {}
-  | NUMEXPRESSION MEI NUMEXPRESSION {}
-  | NUMEXPRESSION MAI NUMEXPRESSION {}
-  | NUMEXPRESSION CMP NUMEXPRESSION {}
-  | NUMEXPRESSION DIF NUMEXPRESSION {}
+EXPRESSION: NUMEXPRESSION MER {comparacao = true;} NUMEXPRESSION {}
+  | NUMEXPRESSION MAR {comparacao = true;} NUMEXPRESSION {}
+  | NUMEXPRESSION MEI {comparacao = true;} NUMEXPRESSION {}
+  | NUMEXPRESSION MAI {comparacao = true;} NUMEXPRESSION {}
+  | NUMEXPRESSION CMP {comparacao = true;} NUMEXPRESSION {}
+  | NUMEXPRESSION DIF {comparacao = true;} NUMEXPRESSION {}
   | NUMEXPRESSION {}
   ;
 
 NUMEXPRESSION: TERM NTERM {
-    if (!expressaoLoop) {
+    if (!expressaoEstrutura) {
       if (op != "") {
         expressao = op+expressao;
         op = "";
@@ -209,37 +212,37 @@ NUMEXPRESSION: TERM NTERM {
 
 NTERM: %empty {}
   | ADD TERM NTERM {
-    if (!expressaoLoop) {
+    if (!expressaoEstrutura) {
       op += "+";
     }
   }
   | SUB TERM NTERM {
-    if (!expressaoLoop) {
+    if (!expressaoEstrutura) {
       op += "-";
     }
   }
   ;
 
 TERM: UNARYEXPR MUL UNARYEXPR {
-    if (!expressaoLoop) {
+    if (!expressaoEstrutura) {
       expressao += "*"+expAux;
     }
     expAux = "";
   }
   | UNARYEXPR DIV UNARYEXPR {
-    if (!expressaoLoop) {
+    if (!expressaoEstrutura) {
       expressao += "/"+expAux;
     }
     expAux = "";
   }
   | UNARYEXPR PRC UNARYEXPR {
-    if (!expressaoLoop) {
+    if (!expressaoEstrutura) {
       expressao += "%"+expAux;
     }
     expAux = "";
   }
   | UNARYEXPR {
-    if (!expressaoLoop) {
+    if (!expressaoEstrutura) {
       expressao += expAux;
     }
     expAux = "";
@@ -253,30 +256,15 @@ UNARYEXPR: ADD AFACTOR {} // Produção para sinal +
 
 AFACTOR: ICT {
     expAux += "+"+std::string(yytext);
-    if (tipoExpressao != "int") {
-      correto = false;
-      if (msgErro == "") {
-        msgErro = "O valor na linha "+std::to_string(yylineno)+" e coluna "+std::to_string(coluna())+" tem um tipo diferente do tipo da expressão.";
-      }
-    }
+    checaTipoExpressao("int");
   }
   | FCT {
     expAux += "+"+std::string(yytext);
-    if (tipoExpressao != "float") {
-      correto = false;
-      if (msgErro == "") {
-        msgErro = "O valor na linha "+std::to_string(yylineno)+" e coluna "+std::to_string(coluna())+" tem um tipo diferente do tipo da expressão.";
-      }
-    }
+    checaTipoExpressao("float");
   }
   | SCT {
     expAux += "+"+std::string(yytext);
-    if (tipoExpressao != "string") {
-      correto = false;
-      if (msgErro == "") {
-        msgErro = "O valor na linha "+std::to_string(yylineno)+" e coluna "+std::to_string(coluna())+" tem um tipo diferente do tipo da expressão.";
-      }
-    }
+    checaTipoExpressao("string");
   }
   | NL {}
   | LVALUE {}
@@ -285,30 +273,15 @@ AFACTOR: ICT {
 
 SFACTOR: ICT {
     expAux += "-"+std::string(yytext);
-    if (tipoExpressao != "int") {
-      correto = false;
-      if (msgErro == "") {
-        msgErro = "O valor na linha "+std::to_string(yylineno)+" e coluna "+std::to_string(coluna())+" tem um tipo diferente do tipo da expressão.";
-      }
-    }
+    checaTipoExpressao("int");
   }
   | FCT {
     expAux += "-"+std::string(yytext);
-    if (tipoExpressao != "float") {
-      correto = false;
-      if (msgErro == "") {
-        msgErro = "O valor na linha "+std::to_string(yylineno)+" e coluna "+std::to_string(coluna())+" tem um tipo diferente do tipo da expressão.";
-      }
-    }
+    checaTipoExpressao("float");
   }
   | SCT {
     expAux += "-"+std::string(yytext);
-    if (tipoExpressao != "string") {
-      correto = false;
-      if (msgErro == "") {
-        msgErro = "O valor na linha "+std::to_string(yylineno)+" e coluna "+std::to_string(coluna())+" tem um tipo diferente do tipo da expressão.";
-      }
-    }
+    checaTipoExpressao("string");
   }
   | NL {}
   | LVALUE {}
@@ -317,30 +290,15 @@ SFACTOR: ICT {
 
 FACTOR: ICT {
     expAux += yytext;
-    if (tipoExpressao != "int") {
-      correto = false;
-      if (msgErro == "") {
-        msgErro = "O valor na linha "+std::to_string(yylineno)+" e coluna "+std::to_string(coluna())+" tem um tipo diferente do tipo da expressão.";
-      }
-    }
+    checaTipoExpressao("int");
   }
   | FCT {
     expAux += yytext;
-    if (tipoExpressao != "float") {
-      correto = false;
-      if (msgErro == "") {
-        msgErro = "O valor na linha "+std::to_string(yylineno)+" e coluna "+std::to_string(coluna())+" tem um tipo diferente do tipo da expressão.";
-      }
-    }
+    checaTipoExpressao("float");
   }
   | SCT {
     expAux += yytext;
-    if (tipoExpressao != "string") {
-      correto = false;
-      if (msgErro == "") {
-        msgErro = "O valor na linha "+std::to_string(yylineno)+" e coluna "+std::to_string(coluna())+" tem um tipo diferente do tipo da expressão.";
-      }
-    }
+    checaTipoExpressao("string");
   }
   | NL {}
   | LVALUE {}
@@ -428,5 +386,20 @@ void checarVariavelEscopo() {
       j++;
     }
     i++;
+  }
+}
+
+void checaTipoExpressao(std::string tipo) {
+  if ((tipoExpressao != tipo) && (!comandoPrint) && (!comparacao)) {
+    correto = false;
+    if (msgErro == "") {
+      msgErro = "O valor na linha "+std::to_string(yylineno)+" e coluna "+std::to_string(coluna())+" tem um tipo diferente do tipo da expressão.";
+    }
+  }
+  if (comandoPrint) {
+    comandoPrint = false;
+  }
+  if (comparacao) {
+    comparacao = false;
   }
 }

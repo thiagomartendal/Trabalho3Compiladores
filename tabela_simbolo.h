@@ -17,7 +17,6 @@ public:
   ~TabelaSimbolo();
   static TabelaSimbolo *instancia();
   bool inserir(std::string lexema, Posicao posicao, std::string tipo = "", int escopo = -1);
-  // void inserirEscopo(std::string lexema, int escopo, std::string tipo = "");
   void limpaTabela();
   std::map<std::pair<std::string, std::pair<std::string, int>>, Atributo> getTabela();
 };
