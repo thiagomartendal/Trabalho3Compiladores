@@ -1,4 +1,4 @@
-# Trabalho 2 - Análise Sintática
+# Trabalho 3 - Análise Semântica e Geração de Código Intermediário
 
 ## Autores
 
@@ -7,6 +7,10 @@ Leandro Hideki Aihara
 Thiago Martendal Salvador
 
 Pablo Daniel Riveros Strapasson
+
+## Sobre o Trabalho 3
+
+Este é o trabalho 3 da disciplina de construção de compiladores, tratamos sobre as fases de análise semântica e geração de código intermediário.
 
 ## Sobre os programas escritos em LCC
 
@@ -24,6 +28,10 @@ O programa 2 trás a implementação do método numérico de Birge Vieta, para c
 
 No programa 3, é implementado um algoritmo que aplica algumas operações em conjuntos.
 
+### outros programas
+
+Foram enviados também outros programas para se testar os recursos do trabalho 3.
+
 ## Instalação
 
 Para instalar o Flex, basta usar o comando do makefile:
@@ -36,7 +44,7 @@ flex lexico.l
 
 bison -d sintatico.y
 
-g++ main.cpp entrada.cpp analise_lexica.cpp sintatico.tab.c lex.yy.c -lfl -o Main
+g++ main.cpp entrada.cpp analise_lexica.cpp tabela_simbolo.cpp lex.yy.c sintatico.tab.c -lfl -o Main
 
 ## Execução:
 
@@ -79,6 +87,54 @@ make programa3_lexico
 Execução do programa 3 sintático:
 
 make programa3_sintatico
+
+Execução do programa 4 léxico:
+
+make programa4_lexico
+
+Execução do programa 4 sintático:
+
+make programa4_sintatico
+
+Execução do programa 5 léxico:
+
+make programa5_lexico
+
+Execução do programa 5 sintático:
+
+make programa5_sintatico
+
+Execução do programa 6 léxico:
+
+make programa6_lexico
+
+Execução do programa 6 sintático:
+
+make programa6_sintatico
+
+Execução do programa 7 léxico:
+
+make programa7_lexico
+
+Execução do programa 7 sintático:
+
+make programa7_sintatico
+
+Execução do programa 8 léxico:
+
+make programa8_lexico
+
+Execução do programa 8 sintático:
+
+make programa8_sintatico
+
+Execução do programa 9 léxico:
+
+make programa9_lexico
+
+Execução do programa 9 sintático:
+
+make programa9_sintatico
 
 ## Importante:
 
