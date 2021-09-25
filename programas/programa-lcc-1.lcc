@@ -1,4 +1,4 @@
-def fibonacchi(int n) 
+def fibonacchi(int n)
 {
     int n0;
     int n1;
@@ -6,8 +6,8 @@ def fibonacchi(int n)
     n1 = 1;
     if (n == 0) {
         print n0;
-    } 
-    
+    }
+
     if (n == 1) {
         print n1;
     }
@@ -36,9 +36,9 @@ def is_prime(int number)
     if (number > 1)
     {
         int i;
-        for (i = 2; i < num; i = i + 1)
+        for (i = 2; i < number; i = i + 1)
         {
-            if (num % i == 0)
+            if (number % i == 0)
             {
                 flag = 1;
                 break;
@@ -58,7 +58,7 @@ def is_prime(int number)
 }
 
 def even_or_odd(int number) {
-    if (number % 2 == 0) 
+    if (number % 2 == 0)
     {
         print "Eh par";
     }
@@ -69,18 +69,18 @@ def even_or_odd(int number) {
     }
 }
 
-def main() 
+def main()
 {
     int a;
-    int result;
-    
+    int resulta;
+
     print "Numero Fibonacchi na posicao 10:";
     a = 10;
-    result = fibonacchi(a);
+    resulta = fibonacchi(a);
 
     print "Numero Fibonacchi na posicao 31:";
     a = 31;
-    result = fibonacchi(a);
+    resulta = fibonacchi(a);
 
     print "O numero 11 eh primo?";
     a = 11;

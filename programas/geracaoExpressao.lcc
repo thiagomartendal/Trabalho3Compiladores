@@ -1,0 +1,27 @@
+def fun(int A, int B, float C) {
+  int m[2][2];
+  m = new int[2][2];
+  m[0][2] = 1;
+  ;
+}
+
+def main(int a, int b) {
+  int val;
+  val = 1+2*3-4/5;
+  print val;
+  int x;
+  read  x;
+  float B[2][3];
+  B = new float[2][3];
+  B[0][0] = 1.0;
+  float k;
+  k = fun(x, val, B);
+  if (k < 0) {
+    ;
+  }
+  int j;
+  j = 5;
+  float vetor[5];
+  vetor[0] = k;
+  return ;
+}

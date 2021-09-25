@@ -8,6 +8,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include "atributo.h"
 #include "analise_lexica.h"
 #include "tabela_simbolo.h"
 #include "sintatico.tab.h"
@@ -15,13 +16,13 @@
 extern "C" int coluna();
 extern "C" bool programaCorreto();
 extern "C" std::vector<std::string> arvoreExpressao();
+extern "C" std::vector<std::string> codigoIntermediario();
 extern "C" std::string mensagemErro();
 extern int yylex();
 extern int yyparse();
 extern int yylineno;
 extern char* yytext;
 extern FILE *yyin;
-
 
 class Entrada {
 private:

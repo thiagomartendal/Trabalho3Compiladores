@@ -2,27 +2,50 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <map>
 #include <algorithm>
-#include "atributo.h"
 #include "tabela_simbolo.h"
+
 bool correto = true;
+bool erroSintaxe = false;
+std::string tipoVarAtrib = "";
+
 bool expressaoEstrutura = false;
+bool operadorExpressao = false;
 bool escopoLoop = false;
 bool comandoPrint = false;
+bool comandoRead = false;
 bool comparacao = false;
 std::string producaoAtual;
 std::vector<std::string> expressoes;
-std::string expressaoPronta = "";
 std::string expressao = "";
 std::string expAux = "";
 std::string op = "";
-std::string tipoExpressao = "";
 std::string msgErro = "";
-std::string nomeVariavel = "";
 int escopoEspressao = 0;
 int auxEscopoEspressao = -1;
+int escopoFuncaoAtual = -1;
+
+std::vector<std::string> linhasCodigoGerado;
+std::string preCodigo = "";
+std::string expAtrib = "";
+std::string varAtrib = "";
+std::string desvio = "";
+std::string labelLoop = "";
+std::string labelFuncao = "";
+std::string parametrosFuncao = "";
+std::string ponteiroIndiceVetor = "";
+bool condicao = false;
+bool identificadorChave = false;
+bool atribuicaoVetor = false;
+bool ponteiroChave = false;
+bool vetorAlocado = false;
+int indiceLabel = 0;
+int indiceAtribuicao = 0;
+int labelDesvio = -1;
+void avaliarCondicao(std::string operador);
+
 void checarVariavelEscopo();
+
 extern int yylex();
 extern void yyerror(const char*);
 extern int yylineno;
@@ -33,6 +56,7 @@ extern "C" {
   int coluna();
   const char* tokenAtual();
   std::vector<std::string> arvoreExpressao();
+  std::vector<std::string> codigoIntermediario();
   std::string mensagemErro();
   std::string erroNaInicializacao();
   std::string erroMultiplaDeclaracao();
@@ -104,23 +128,86 @@ FUNCLIST: FUNCDEF FUNCLIST {}
   | FUNCDEF {}
   ;
 
-FUNCDEF: DF IDF P1 PARAMLIST P2 CV1 {auxEscopoEspressao++; escopoEspressao = auxEscopoEspressao+1;} STATELIST CV2 {
+FUNCDEF: DF {escopoFuncaoAtual++;} IDF {
+    LinhaTabela linha = TabelaSimbolo::instancia()->retornarPorLinhaColuna(yylineno, coluna());
+    if (linha.lexema != "") {
+      labelFuncao += linha.lexema;
+    }
+  } P1 {labelFuncao += "(";} PARAMLIST {labelFuncao += ")";} P2 {
+    if (labelFuncao != "") {
+      linhasCodigoGerado.push_back(labelFuncao+":");
+      labelFuncao = "";
+    }
+  } CV1 {auxEscopoEspressao++; escopoEspressao = auxEscopoEspressao+1;} STATELIST CV2 {
     checarVariavelEscopo();
     escopoEspressao--;
   }
   ;
 
 PARAMLIST: %empty {}
-  | INT ID VI PARAMLIST {}
-  | FLT ID VI PARAMLIST {}
-  | STR ID VI PARAMLIST {}
-  | INT ID {}
-  | FLT ID {}
-  | STR ID {}
+  | INT ID {
+    int col = coluna();
+    LinhaTabela linha = TabelaSimbolo::instancia()->retornarPorLinhaColuna(yylineno, col);
+    while (linha.lexema == "") {
+      col -= 1;
+      linha = TabelaSimbolo::instancia()->retornarPorLinhaColuna(yylineno, col);
+    }
+    labelFuncao += linha.lexema+", ";
+  } VI PARAMLIST {}
+  | FLT ID {
+    int col = coluna();
+    LinhaTabela linha = TabelaSimbolo::instancia()->retornarPorLinhaColuna(yylineno, col);
+    while (linha.lexema == "") {
+      col -= 1;
+      linha = TabelaSimbolo::instancia()->retornarPorLinhaColuna(yylineno, col);
+    }
+    labelFuncao += linha.lexema+", ";
+  } VI PARAMLIST {}
+  | STR ID {
+    int col = coluna();
+    LinhaTabela linha = TabelaSimbolo::instancia()->retornarPorLinhaColuna(yylineno, col);
+    while (linha.lexema == "") {
+      col -= 1;
+      linha = TabelaSimbolo::instancia()->retornarPorLinhaColuna(yylineno, col);
+    }
+    labelFuncao += linha.lexema+", ";
+  } VI PARAMLIST {}
+  | INT ID {
+    int col = coluna();
+    LinhaTabela linha = TabelaSimbolo::instancia()->retornarPorLinhaColuna(yylineno, col);
+    while (linha.lexema == "") {
+      col -= 1;
+      linha = TabelaSimbolo::instancia()->retornarPorLinhaColuna(yylineno, col);
+    }
+    labelFuncao += linha.lexema;
+  }
+  | FLT ID {
+    int col = coluna();
+    LinhaTabela linha = TabelaSimbolo::instancia()->retornarPorLinhaColuna(yylineno, col);
+    while (linha.lexema == "") {
+      col -= 1;
+      linha = TabelaSimbolo::instancia()->retornarPorLinhaColuna(yylineno, col);
+    }
+    labelFuncao += linha.lexema;
+  }
+  | STR ID {
+    int col = coluna();
+    LinhaTabela linha = TabelaSimbolo::instancia()->retornarPorLinhaColuna(yylineno, col);
+    while (linha.lexema == "") {
+      col -= 1;
+      linha = TabelaSimbolo::instancia()->retornarPorLinhaColuna(yylineno, col);
+    }
+    labelFuncao += linha.lexema;
+  }
   ;
 
 STATEMENT: VARDECL PV {}
-  | ATRIBSTAT PV {}
+  | {
+      LinhaTabela linha = TabelaSimbolo::instancia()->retornarPorLinhaColuna(yylineno, coluna());
+      if (linha.lexema != "") {
+        tipoVarAtrib = linha.tipo;
+      }
+    } ATRIBSTAT {tipoVarAtrib = "";} PV {}
   | PRINTSTAT PV {}
   | READSTAT PV {}
   | RETURNSTAT PV {}
@@ -130,7 +217,7 @@ STATEMENT: VARDECL PV {}
     checarVariavelEscopo();
     escopoEspressao--;
   }
-  | BRK PV {
+  | BRK {linhasCodigoGerado.push_back("break");} PV {
     if (!escopoLoop) {
       correto = false;
       if (msgErro == "") {
@@ -141,111 +228,259 @@ STATEMENT: VARDECL PV {}
   | PV {}
   ;
 
-VARDECL: INT ID CL1 ICT CL2 {}
-  | FLT ID CL1 ICT CL2 {}
-  | STR ID CL1 ICT CL2 {}
+VARDECL: INT ID BRACKET {}
+  | FLT ID BRACKET {}
+  | STR ID BRACKET {}
   | INT ID {}
   | FLT ID {}
   | STR ID {}
   ;
 
-ATRIBSTAT: LVALUE ATR EXPRESSION {}
-  | LVALUE ATR ALLOCEXPRESSION {}
-  | LVALUE ATR FUNCCALL {}
+BRACKET: CL1 ICT CL2 {}
+  | CL1 ICT CL2 BRACKET {}
   ;
 
-FUNCCALL: IDF P1 PARAMLISTCALL P2 {}
+ATRIBSTAT: LVALUE ATR {
+  if (!condicao) {
+    preCodigo += varAtrib;
+  }
+  varAtrib = "";
+  expAux = "";
+  expressao = "";
+  expAtrib = "";
+  } EXPRESSION {
+    if (condicao) {
+      LinhaTabela linha = TabelaSimbolo::instancia()->retornarPorLinha(yylineno);
+      preCodigo += linha.lexema+" = "+expAtrib;
+      expAtrib = "";
+    } else {
+      if (atribuicaoVetor) {
+        std::string atribuicao = "t"+std::to_string(indiceAtribuicao)+" = "+expAtrib;
+        linhasCodigoGerado.push_back(atribuicao);
+        expAtrib = "";
+        atribuicao = "*t"+std::to_string(indiceAtribuicao-1)+" = t"+std::to_string(indiceAtribuicao);
+        linhasCodigoGerado.push_back(atribuicao);
+        atribuicaoVetor = false;
+        indiceAtribuicao++;
+      } else {
+        preCodigo += " = "+expAtrib;
+        expAtrib = "";
+        linhasCodigoGerado.push_back(preCodigo);
+        preCodigo = "";
+      }
+    }
+    varAtrib = "";
+  }
+  | LVALUE ATR {
+    LinhaTabela linha = TabelaSimbolo::instancia()->retornarPorLinha(yylineno);
+    preCodigo += linha.lexema+" = ";
+  } ALLOCEXPRESSION {}
+  | LVALUE ATR {
+    if (!condicao) {
+      preCodigo += varAtrib+" = ";
+    }
+    varAtrib = "";
+    expAux = "";
+    expressao = "";
+    expAtrib = "";
+  } FUNCCALL {}
+  ;
+
+FUNCCALL: {
+    LinhaTabela linha = TabelaSimbolo::instancia()->retornarPorLinhaColuna(yylineno, coluna());
+    if (linha.lexema != "") {
+      preCodigo += linha.lexema;
+    }
+  } IDF P1 {preCodigo += "(";} PARAMLISTCALL P2 {preCodigo += ")";} {
+    linhasCodigoGerado.push_back(preCodigo);
+    preCodigo = "";
+  }
   ;
 
 PARAMLISTCALL: %empty {}
-  | ID VI PARAMLISTCALL {}
-  | ID {}
+  | ID {
+    int col = coluna();
+    LinhaTabela linha = TabelaSimbolo::instancia()->retornarPorLinhaColuna(yylineno, col);
+    while (linha.lexema == "") {
+      col -= 1;
+      linha = TabelaSimbolo::instancia()->retornarPorLinhaColuna(yylineno, col);
+    }
+    preCodigo += linha.lexema+", ";
+  } VI PARAMLISTCALL {}
+  | ID {
+    int col = coluna();
+    LinhaTabela linha = TabelaSimbolo::instancia()->retornarPorLinhaColuna(yylineno, col);
+    while (linha.lexema == "") {
+      col -= 1;
+      linha = TabelaSimbolo::instancia()->retornarPorLinhaColuna(yylineno, col);
+    }
+    preCodigo += linha.lexema;
+  }
   ;
 
-PRINTSTAT: PR {comandoPrint = true;} EXPRESSION {}
+PRINTSTAT: PR {comandoPrint = true;} EXPRESSION {
+    linhasCodigoGerado.push_back("print "+expAtrib);
+    expAtrib = "";
+  }
   ;
 
-READSTAT: RD LVALUE {}
+READSTAT: RD {comandoRead = true;} LVALUE {
+    linhasCodigoGerado.push_back("read "+varAtrib);
+    varAtrib = "";
+    comandoRead = false;
+  }
   ;
 
-RETURNSTAT: RET {}
+RETURNSTAT: RET {linhasCodigoGerado.push_back("return");}
   ;
 
-IFSTAT: IF {expressaoEstrutura = true;} P1 EXPRESSION P2 {expressaoEstrutura = false;} STATEMENT {}
-  | IFE {expressaoEstrutura = true;} P1 EXPRESSION P2 {expressaoEstrutura = false;} STATEMENT ELS STATEMENT {}
+IFSTAT: IF {expressaoEstrutura = true;} P1 {condicao = true;} EXPRESSION {
+    linhasCodigoGerado.push_back(preCodigo);
+    preCodigo = "";
+    expAtrib = "";
+  } P2 {
+    expressaoEstrutura = false;
+    condicao = false;
+  } STATEMENT {
+    linhasCodigoGerado.push_back(desvio+": ");
+    desvio = "";
+  }
+  | IFE {expressaoEstrutura = true;} P1 {condicao = true;} EXPRESSION {
+      linhasCodigoGerado.push_back(preCodigo);
+      preCodigo = "";
+      expAtrib = "";
+    } P2 {expressaoEstrutura = false; condicao = false;} STATEMENT ELS {
+      linhasCodigoGerado.push_back(desvio+": ");
+      desvio = "";
+    } STATEMENT {}
   ;
 
-FORSTAT: FOR {expressaoEstrutura = true; escopoLoop = true;} P1 ATRIBSTAT PV EXPRESSION PV ATRIBSTAT P2 {expressaoEstrutura = false; expressao = ""; tipoExpressao = "";} STATEMENT {expressaoEstrutura = false; escopoLoop = false;}
+FORSTAT: FOR {expressaoEstrutura = true; escopoLoop = true;} P1 {condicao = true;} ATRIBSTAT {linhasCodigoGerado.push_back(preCodigo); preCodigo = "";} PV {
+  labelLoop = "L"+std::to_string(indiceLabel);
+  preCodigo += labelLoop+": ";
+  indiceLabel++;
+  labelDesvio = indiceLabel;
+  } EXPRESSION {linhasCodigoGerado.push_back(preCodigo); preCodigo = ""; expAtrib = "";} PV ATRIBSTAT {linhasCodigoGerado.push_back(preCodigo); preCodigo = ""; condicao = false;} P2 {expressaoEstrutura = false; expressao = ""; condicao = false;} STATEMENT {
+    linhasCodigoGerado.push_back("goto "+labelLoop);
+    labelLoop = "";
+    expressaoEstrutura = false;
+    escopoLoop = false;
+    if (desvio != "") {
+      linhasCodigoGerado.push_back(desvio+":");
+      desvio = "";
+    }
+  }
   ;
 
 STATELIST: STATEMENT STATELIST {}
   | STATEMENT {}
   ;
 
-ALLOCEXPRESSION: NEW INT CL1 NUMEXPRESSION CL2 {}
-  | NEW FLT CL1 NUMEXPRESSION CL2 {}
-  | NEW STR CL1 NUMEXPRESSION CL2 {}
+ALLOCEXPRESSION: NEW INT {preCodigo += "new int"; vetorAlocado = true; expAtrib = "";} ALLOC {}
+  | NEW FLT {preCodigo += "new float"; vetorAlocado = true; expAtrib = "";} ALLOC {}
+  | NEW STR {preCodigo += "new string"; vetorAlocado = true; expAtrib = "";} ALLOC {}
   ;
 
-EXPRESSION: NUMEXPRESSION MER {comparacao = true;} NUMEXPRESSION {}
-  | NUMEXPRESSION MAR {comparacao = true;} NUMEXPRESSION {}
-  | NUMEXPRESSION MEI {comparacao = true;} NUMEXPRESSION {}
-  | NUMEXPRESSION MAI {comparacao = true;} NUMEXPRESSION {}
-  | NUMEXPRESSION CMP {comparacao = true;} NUMEXPRESSION {}
-  | NUMEXPRESSION DIF {comparacao = true;} NUMEXPRESSION {}
+ALLOC: CL1 NUMEXPRESSION CL2 {preCodigo += "["+expAtrib+"]"; linhasCodigoGerado.push_back(preCodigo); vetorAlocado = false; preCodigo = ""; expAtrib = "";}
+  | CL1 NUMEXPRESSION CL2 {preCodigo += "["+expAtrib+"]"; expAtrib = "";} ALLOC {}
+
+EXPRESSION: NUMEXPRESSION {comparacao = true; expAtrib = "";} MER NUMEXPRESSION {
+    if (condicao) {
+      avaliarCondicao("<");
+    }
+  }
+  | NUMEXPRESSION MAR {comparacao = true; expAtrib = "";} NUMEXPRESSION {
+    if (condicao) {
+      avaliarCondicao(">");
+    }
+  }
+  | NUMEXPRESSION MEI {comparacao = true; expAtrib = "";} NUMEXPRESSION {
+    if (condicao) {
+      avaliarCondicao("<=");
+    }
+  }
+  | NUMEXPRESSION MAI {comparacao = true; expAtrib = "";} NUMEXPRESSION {
+    if (condicao) {
+      avaliarCondicao(">=");
+    }
+  }
+  | NUMEXPRESSION CMP {comparacao = true; expAtrib = "";} NUMEXPRESSION {
+    if (condicao) {
+      avaliarCondicao("==");
+    }
+  }
+  | NUMEXPRESSION DIF {comparacao = true; expAtrib = "";} NUMEXPRESSION {
+    if (condicao) {
+      avaliarCondicao("!=");
+    }
+  }
   | NUMEXPRESSION {}
   ;
 
 NUMEXPRESSION: TERM NTERM {
-    if (!expressaoEstrutura) {
+    if (!expressaoEstrutura && operadorExpressao) {
       if (op != "") {
         expressao = op+expressao;
         op = "";
       }
       expressoes.push_back(expressao);
-      expressaoPronta = expressao;
       expressao = "";
-      tipoExpressao = "";
+      operadorExpressao = false;
     }
   }
   ;
 
 NTERM: %empty {}
-  | ADD TERM NTERM {
+  | ADD {expAtrib += "+";} TERM NTERM {
     if (!expressaoEstrutura) {
       op += "+";
+      expressao += expAux;
+      operadorExpressao = true;
     }
+    expAux = "";
   }
-  | SUB TERM NTERM {
+  | SUB {expAtrib += "-";} TERM NTERM {
     if (!expressaoEstrutura) {
       op += "-";
+      expressao += expAux;
+      operadorExpressao = true;
     }
+    expAux = "";
   }
   ;
 
-TERM: UNARYEXPR MUL UNARYEXPR {
+TERM: UNARYEXPR MUL {expAtrib += "*";} UNARYEXPR {
     if (!expressaoEstrutura) {
       expressao += "*"+expAux;
+      operadorExpressao = true;
     }
     expAux = "";
   }
-  | UNARYEXPR DIV UNARYEXPR {
+  | UNARYEXPR DIV {expAtrib += "/";} UNARYEXPR {
     if (!expressaoEstrutura) {
       expressao += "/"+expAux;
+      operadorExpressao = true;
     }
     expAux = "";
   }
-  | UNARYEXPR PRC UNARYEXPR {
+  | UNARYEXPR PRC {expAtrib += "%";} UNARYEXPR {
     if (!expressaoEstrutura) {
       expressao += "%"+expAux;
+      operadorExpressao = true;
     }
     expAux = "";
   }
   | UNARYEXPR {
-    if (!expressaoEstrutura) {
-      expressao += expAux;
-    }
-    expAux = "";
+      if (!expressaoEstrutura) {
+        expressao += expAux;
+      }
+      if (identificadorChave && (expAux != "")) {
+        if (ponteiroIndiceVetor != "") {
+          ponteiroIndiceVetor += " + ";
+        }
+        ponteiroIndiceVetor += expAux;
+      }
+      expAux = "";
   }
   ;
 
@@ -255,93 +490,141 @@ UNARYEXPR: ADD AFACTOR {} // Produção para sinal +
   ;
 
 AFACTOR: ICT {
+    expAtrib += "+"+std::string(yytext);
     expAux += "+"+std::string(yytext);
-    checaTipoExpressao("int");
+    if (!vetorAlocado) {
+      checaTipoExpressao("int");
+    }
   }
   | FCT {
+    expAtrib += "+"+std::string(yytext);
     expAux += "+"+std::string(yytext);
-    checaTipoExpressao("float");
+    if (!vetorAlocado) {
+      checaTipoExpressao("float");
+    }
   }
   | SCT {
+    expAtrib += "+"+std::string(yytext);
     expAux += "+"+std::string(yytext);
-    checaTipoExpressao("string");
+    if (!vetorAlocado) {
+      checaTipoExpressao("string");
+    }
   }
-  | NL {}
+  | NL {expAtrib += "null"; expAux += "null";}
   | LVALUE {}
   | P1 NUMEXPRESSION P2 {}
   ;
 
 SFACTOR: ICT {
+    expAtrib += "-"+std::string(yytext);
     expAux += "-"+std::string(yytext);
-    checaTipoExpressao("int");
+    if (!vetorAlocado) {
+      checaTipoExpressao("int");
+    }
   }
   | FCT {
+    expAtrib += "-"+std::string(yytext);
     expAux += "-"+std::string(yytext);
-    checaTipoExpressao("float");
+    if (!vetorAlocado) {
+      checaTipoExpressao("float");
+    }
   }
   | SCT {
+    expAtrib += "-"+std::string(yytext);
     expAux += "-"+std::string(yytext);
-    checaTipoExpressao("string");
+    if (!vetorAlocado) {
+      checaTipoExpressao("string");
+    }
   }
-  | NL {}
+  | NL {expAtrib += "null"; expAux += "null";}
   | LVALUE {}
   | P1 NUMEXPRESSION P2 {}
   ;
 
 FACTOR: ICT {
+    expAtrib += yytext;
     expAux += yytext;
-    checaTipoExpressao("int");
+    if (!vetorAlocado) {
+      checaTipoExpressao("int");
+    }
   }
   | FCT {
+    expAtrib += yytext;
     expAux += yytext;
-    checaTipoExpressao("float");
+    if (!vetorAlocado) {
+      checaTipoExpressao("float");
+    }
   }
   | SCT {
+    expAtrib += yytext;
     expAux += yytext;
-    checaTipoExpressao("string");
+    if (!vetorAlocado) {
+      checaTipoExpressao("string");
+    }
   }
-  | NL {}
+  | NL {expAtrib += "null"; expAux += "null";}
   | LVALUE {}
   | P1 NUMEXPRESSION P2 {}
   ;
 
-LVALUE: ID {
-    bool escopoDiferente = false;
-    for (auto const& it: TabelaSimbolo::instancia()->getTabela()) {
-      std::pair<std::string, std::pair<std::string, int>> par = it.first;
-      std::pair<std::string, int> par2 = par.second;
-      Atributo at = it.second;
-      if ((par.first == yytext) && (par2.second == escopoEspressao)) {
-        tipoExpressao = par2.first;
-        escopoDiferente = false;
-        break;
-      } else {
-        escopoDiferente = true;
-      }
+LVALUE: {
+  LinhaTabela linha = TabelaSimbolo::instancia()->retornarPorLinhaColuna(yylineno, coluna());
+  if (linha.lexema != "") {
+    if (!identificadorChave && !vetorAlocado) {
+      expAtrib += linha.lexema;
+      expAux += linha.lexema;
+      varAtrib = linha.lexema;
+      checaTipoExpressao(linha.tipo);
+    } else {
+      std::string atribuicao = "t"+std::to_string(indiceAtribuicao)+" = t"+std::to_string(indiceAtribuicao-1)+" + "+linha.lexema;
+      linhasCodigoGerado.push_back(atribuicao);
+      indiceAtribuicao++;
     }
-    if (escopoDiferente) {
-      for (auto const& it: TabelaSimbolo::instancia()->getTabela()) {
-        std::pair<std::string, std::pair<std::string, int>> par = it.first;
-        std::pair<std::string, int> par2 = par.second;
-        Atributo at = it.second;
-        if (par.first == yytext) {
-          tipoExpressao = par2.first;
+  }
+  } ID {
+    if (comandoRead) {
+      LinhaTabela linha = TabelaSimbolo::instancia()->retornarPorLinhaColuna(yylineno, coluna());
+      if (linha.lexema != "") {
+        if (!identificadorChave) {
+          varAtrib = linha.lexema;
         }
       }
     }
   } NLVALUE {}
   ;
 
-NLVALUE: %empty {}
-  | CL1 NUMEXPRESSION CL2 NLVALUE {}
+NLVALUE: %empty {
+  identificadorChave = false;
+  if (ponteiroChave) {
+    ponteiroChave = false;
+    std::string atribuicao = "t"+std::to_string(indiceAtribuicao)+" = t"+std::to_string(indiceAtribuicao-1)+" + "+ponteiroIndiceVetor;
+    linhasCodigoGerado.push_back(atribuicao);
+    indiceAtribuicao++;
+    ponteiroIndiceVetor = "";
+  }
+}
+  | {
+    if (!ponteiroChave && !vetorAlocado) {
+      std::string atribuicao = "t"+std::to_string(indiceAtribuicao)+" = &"+expAtrib;
+      linhasCodigoGerado.push_back(atribuicao);
+      atribuicaoVetor = true;
+      indiceAtribuicao++;
+      expAtrib = "";
+      identificadorChave = true;
+      varAtrib = "";
+      expAux = "";
+      ponteiroChave = true;
+    }
+  } CL1 NUMEXPRESSION CL2 NLVALUE {}
   ;
 
 %%
 
 void yyerror(const char *msg) {
   std::cout << "Erro de sintaxe. Linha: " << yylineno << ". Coluna: " << coluna() << "." << std::endl;
-  /* std::cout << "Produção: " << producaoAtual << ". Token: " << tokenAtual() << ". Lexema: " << yytext << "." << std::endl; */
   correto = false;
+  erroSintaxe = true;
+  msgErro = "";
 }
 
 bool programaCorreto() {
@@ -359,7 +642,14 @@ std::vector<std::string> arvoreExpressao() {
   return expressoes;
 }
 
+std::vector<std::string> codigoIntermediario() {
+  return linhasCodigoGerado;
+}
+
 std::string mensagemErro() {
+  if (erroSintaxe) {
+    return "";
+  }
   return msgErro;
 }
 
@@ -369,15 +659,22 @@ void checarVariavelEscopo() {
     std::pair<std::string, std::pair<std::string, int>> par1 = it1.first;
     std::pair<std::string, int> par2 = par1.second;
     Atributo at1 = it1.second;
+    for (int escopo: at1.escopos) {
+      if (escopo < at1.escopoDeclaracao) {
+        msgErro = "A variável "+par1.first+" foi utilizada fora do escopo em que foi declarada.";
+        correto = false;
+        break;
+      }
+    }
+    if (!correto) {
+      break;
+    }
     int j = 0;
     for (auto const& it2: TabelaSimbolo::instancia()->getTabela()) {
       if (i != j) {
-        std::pair<std::string, std::pair<std::string, int>> par3 = it2.first;
-        std::pair<std::string, int> par4 = par3.second;
+        std::pair<std::string, std::pair<std::string, int>> par2 = it2.first;
         Atributo at2 = it2.second;
-        /* std::cout << par1.first << " " << par2.first << " " << par1.second << " " << par2.second << " " << at1.escopo << " " << at2.escopo << std::endl; */
-        /* && (par2.first != par4.first) */
-        if ((par1.first == par3.first) && (par2.second == par4.second)) {
+        if ((par1.first == par2.first) && (at1.escopoDeclaracao == at2.escopoDeclaracao)) {
           correto = false;
           msgErro = "A variável "+par1.first+" foi declarada duas vezes no mesmo escopo.";
           break;
@@ -390,10 +687,20 @@ void checarVariavelEscopo() {
 }
 
 void checaTipoExpressao(std::string tipo) {
-  if ((tipoExpressao != tipo) && (!comandoPrint) && (!comparacao)) {
-    correto = false;
-    if (msgErro == "") {
-      msgErro = "O valor na linha "+std::to_string(yylineno)+" e coluna "+std::to_string(coluna())+" tem um tipo diferente do tipo da expressão.";
+  LinhaTabela linha = TabelaSimbolo::instancia()->retornarPorLinha(yylineno);
+  if (linha.lexema != "") {
+    if ((!comandoPrint) && (!comparacao) && (!identificadorChave)) {
+      if ((linha.tipo != tipo)) {
+        correto = false;
+        if (msgErro == "") {
+          msgErro = "O valor na linha "+std::to_string(yylineno)+" e coluna "+std::to_string(coluna())+" tem um tipo diferente do tipo da expressão.";
+        }
+      } else if ((tipoVarAtrib != "") && (tipoVarAtrib != tipo)) {
+        correto = false;
+        if (msgErro == "") {
+          msgErro = "O valor na linha "+std::to_string(yylineno)+" e coluna "+std::to_string(coluna())+" tem um tipo diferente do tipo da expressão.";
+        }
+      }
     }
   }
   if (comandoPrint) {
@@ -402,4 +709,25 @@ void checaTipoExpressao(std::string tipo) {
   if (comparacao) {
     comparacao = false;
   }
+}
+
+void avaliarCondicao(std::string operador) {
+  LinhaTabela linha = TabelaSimbolo::instancia()->retornarPorLinha(yylineno);
+  desvio = "L"+std::to_string(indiceLabel);
+  preCodigo += "if "+linha.lexema;
+  if (operador == "<") {
+    preCodigo += " >= ";
+  } else if (operador == ">") {
+    preCodigo += " <= ";
+  } else if (operador == "<=") {
+    preCodigo += " > ";
+  } else if (operador == ">=") {
+    preCodigo += " < ";
+  } else if (operador == "==") {
+    preCodigo += " != ";
+  } else if (operador == "!=") {
+    preCodigo += " == ";
+  }
+  preCodigo += expAtrib+" goto "+desvio;
+  indiceLabel++;
 }

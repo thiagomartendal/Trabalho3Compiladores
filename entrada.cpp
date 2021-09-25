@@ -47,9 +47,30 @@ void Entrada::analiseSintaticaArquivo() {
   if (programaCorreto()) {
     std::cout << "Programa correto." << std::endl;
     std::vector<std::string> arv = arvoreExpressao();
-    // std::reverse(expressao.begin(), expressao.end());
-    for (std::string exp: arv) {
-      std::cout << exp << std::endl;
+    if (TabelaSimbolo::instancia()->getTabela().size() > 0) {
+      std::cout << std::endl;
+      std::cout << "Tabela de símbolos:" << std::endl;
+      Entrada::exibirTabelaSimbolos();
+    }
+    if (arv.size() > 0) {
+      std::cout << std::endl;
+      std::cout << "Árvores de Expressão:" << std::endl;
+      for (std::string exp: arv) {
+        std::cout << exp << std::endl;
+      }
+      std::cout << "As expressões aritméticas são válidas." << std::endl;
+    }
+    std::cout << std::endl;
+    std::cout << "Não existem variáveis declaradas em escopos incorretos." << std::endl;
+    std::cout << std::endl;
+    std::cout << "Não existe um comando break fora de um escopo de um laço de repetição." << std::endl;
+    std::vector<std::string> codigo = codigoIntermediario();
+    if (codigo.size() > 0) {
+      std::cout << std::endl;
+      std::cout << "Código Gerado:" << std::endl;
+      for (std::string linha: codigo) {
+        std::cout << linha << std::endl;
+      }
     }
   } else {
     if (mensagemErro() != "") {

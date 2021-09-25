@@ -1,0 +1,32 @@
+def main() {
+  int a;
+  a = 10;
+  int b;
+  b = 20;
+  int c;
+  ifelse (a < b) {
+    c = a;
+  } else {
+    c = b;
+  }
+  if (a < b) {
+    c = a;
+  }
+  if (a > b) {
+    c = b;
+  }
+  if (a <= b) {
+    c = 1;
+  }
+  if (a >= b) {
+    c = 2;
+  }
+  if (a == b) {
+    c = a+b;
+  }
+  int d[5];
+  if (a != b) {
+    c = 0;
+    d[3] = c+a-b;
+  }
+}
